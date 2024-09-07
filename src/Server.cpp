@@ -13,25 +13,22 @@ int main(int argc, char **argv) {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
-  // You can use print statements as follows for debugging, they'll be visible when running tests.
-  std::cout << "Logs from your program will appear here!\n";
-
-  // Uncomment this block to pass the first stage
   
+  // Create socket - AF_INET for IPV4, SOCK_STREAM for TCP
   int server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd < 0) {
    std::cerr << "Failed to create server socket\n";
    return 1;
   }
   
-  // Since the tester restarts your program quite often, setting SO_REUSEADDR
-  // ensures that we don't run into 'Address already in use' errors
+  // Configure socket
   int reuse = 1;
   if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
     std::cerr << "setsockopt failed\n";
     return 1;
   }
   
+  // Bind to address 6379
   struct sockaddr_in server_addr;
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = INADDR_ANY;
@@ -42,12 +39,14 @@ int main(int argc, char **argv) {
     return 1;
   }
   
+  // Enable listening for connections
   int connection_backlog = 5;
   if (listen(server_fd, connection_backlog) != 0) {
     std::cerr << "listen failed\n";
     return 1;
   }
   
+  // Block and wait for client to connect to server
   struct sockaddr_in client_addr;
   int client_addr_len = sizeof(client_addr);
   
