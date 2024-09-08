@@ -13,18 +13,23 @@ void processClient(int connfd) {
 
   // Read into buffer
   char rbuf[64] = {};
-  while (true) {
+ for (int i = 0; i < 2; i++) {
+    memset(rbuf, 0, sizeof(rbuf)); // Clear the buffer
     ssize_t n = read(connfd, rbuf, sizeof(rbuf) - 1);
     if (n < 0) {
       std::cout << "read() error";
       return;
     }
 
+    // rbuf[n] = '\0'; // Null-terminate the received data
+
     printf("Client says: %s\n", rbuf);
 
     // Write response
     char wbuf[] = "+PONG\r\n";
     write(connfd, wbuf, strlen(wbuf));
+
+    
   }
   
 }
