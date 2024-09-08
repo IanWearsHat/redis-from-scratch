@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
         char rbuf[64] = {};
         ssize_t n = read(fd, rbuf, sizeof(rbuf) - 1);
         if (n < 0) {
-            std::cout << "Error reading response";
+            std::cout << "Erro r reading response";
         }
         printf("server says: %s\n", rbuf);
     }
