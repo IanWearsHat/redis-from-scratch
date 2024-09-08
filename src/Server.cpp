@@ -65,20 +65,18 @@ int main(int argc, char **argv) {
   }
   
   // Block and wait for client to connect to server
-  while (true) {
-    struct sockaddr_in client_addr;
-    int client_addr_len = sizeof(client_addr);
-    
-    std::cout << "Waiting for a client to connect...\n";
-    
-    int connfd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
+  struct sockaddr_in client_addr;
+  int client_addr_len = sizeof(client_addr);
   
-    processClient(connfd);
+  std::cout << "Waiting for a client to connect...\n";
+  
+  int connfd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
 
-    close(server_fd);
+  while (true) {
+    processClient(connfd);
   }
   
-  
+  close(server_fd);
 
   return 0;
 }
