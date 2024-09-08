@@ -13,17 +13,20 @@ void processClient(int connfd) {
 
   // Read into buffer
   char rbuf[64] = {};
-  ssize_t n = read(connfd, rbuf, sizeof(rbuf) - 1);
-  if (n < 0) {
-    std::cout << "read() error";
-    return;
+  while (true) {
+    ssize_t n = read(connfd, rbuf, sizeof(rbuf) - 1);
+    if (n < 0) {
+      std::cout << "read() error";
+      return;
+    }
+
+    printf("Client says: %s\n", rbuf);
+
+    // Write response
+    char wbuf[] = "+PONG\r\n";
+    write(connfd, wbuf, strlen(wbuf));
   }
-
-  printf("Client says: %s\n", rbuf);
-
-  // Write response
-  char wbuf[] = "+PONG\r\n";
-  write(connfd, wbuf, strlen(wbuf));
+  
 }
 
 int main(int argc, char **argv) {
@@ -67,16 +70,16 @@ int main(int argc, char **argv) {
   // Block and wait for client to connect to server
   
   int connfd;
-  while (true) {
-    struct sockaddr_in client_addr;
-    int client_addr_len = sizeof(client_addr);
-    
-    std::cout << "Waiting for a client to connect...\n";
-    
-    connfd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
-    while (true) processClient(connfd);
-    close(connfd);
-  }
+
+  struct sockaddr_in client_addr;
+  int client_addr_len = sizeof(client_addr);
+  
+  std::cout << "Waiting for a client to connect...\n";
+  
+  connfd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
+  processClient(connfd);
+  close(connfd);
+
   
   
   close(server_fd);
