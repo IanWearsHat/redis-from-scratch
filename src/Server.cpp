@@ -9,7 +9,7 @@
 #include <netdb.h>
 
 void processClient(int connfd) {
-  if (connfd < 0) std::cout << "Client connected\n";
+  if (connfd >= 0) std::cout << "Client connected\n";
 
   // Read into buffer
   char rbuf[64] = {};
@@ -66,17 +66,18 @@ int main(int argc, char **argv) {
   
   // Block and wait for client to connect to server
   
-
+  int connfd;
   while (true) {
     struct sockaddr_in client_addr;
     int client_addr_len = sizeof(client_addr);
     
     std::cout << "Waiting for a client to connect...\n";
     
-    int connfd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
-    processClient(connfd);
+    connfd = accept(server_fd, (struct sockaddr *) &client_addr, (socklen_t *) &client_addr_len);
+    while (true) processClient(connfd);
     close(connfd);
   }
+  
   
   close(server_fd);
 
