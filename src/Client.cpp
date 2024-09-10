@@ -38,7 +38,7 @@ static int32_t write_all(int fd, const char *buf, size_t n) {
 }
 
 const size_t k_max_msg = 4096;
-int32_t makeRequest(int fd, const char *text) {
+int32_t make_request(int fd, const char *text) {
     uint32_t len = (uint32_t) strlen(text);
 
     char wbuf[4 + len];
@@ -115,17 +115,17 @@ int main(int argc, char **argv) {
 
     // char msg[] = "*1\r\n$4\r\nPING\r\n";
     int32_t err;
-    err = makeRequest(fd, "tory lanez");
+    err = make_request(fd, "tory lanez");
     if (err) {
         close(fd);
         return -1;
     }
-    err = makeRequest(fd, "canada");
+    err = make_request(fd, "canada");
     if (err) {
         close(fd);
         return -1;
     }
-    err = makeRequest(fd, "just joshin");
+    err = make_request(fd, "just joshin");
     if (err) {
         close(fd);
         return -1;
