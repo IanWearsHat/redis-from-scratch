@@ -10,6 +10,7 @@
 #include <vector>
 #include <poll.h>
 #include <assert.h>
+#include <fcntl.h>
 
 #include "connections.h"
 
@@ -46,6 +47,23 @@ void die(const char* msg) {
     exit(1);
 }
 
+void set_fd_to_nonblocking(int fd) {
+    errno = 0;
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (errno) {
+        die("fcntl error");
+        return;
+    }
+
+    flags |= O_NONBLOCK;
+
+    errno = 0;
+    (void) fcntl(fd, F_SETFL, flags);
+    if (errno) {
+        die("fcntl error");
+    }
+}
+
 int accept_new_connection(int server_fd, std::vector<Conn *> &fd2conn) {
     struct sockaddr_in client_addr = {};
     socklen_t socklen = sizeof(client_addr);
@@ -53,6 +71,8 @@ int accept_new_connection(int server_fd, std::vector<Conn *> &fd2conn) {
     if (client_fd < 0) {
         die("accept error");
     }
+
+    set_fd_to_nonblocking(client_fd);
 
     return client_fd;
 }
@@ -98,6 +118,7 @@ bool try_process_one_request(Conn *client) {
 
         client->wbuf_size += 4 + len;
 
+        client->state = STATE_RES;
         handle_response_state(client);
 
         free(msg);
@@ -125,6 +146,7 @@ bool fill_read_buffer(Conn *client) {
     if (rv < 0 && errno == EAGAIN) {
         // mark connection for end
         // break out of while loop in handle_request_state
+        client->state = STATE_END;
         return false;
     }
 
@@ -132,6 +154,7 @@ bool fill_read_buffer(Conn *client) {
         // reached EOF
         // mark connection for end
         // break out of while loop in handle_request_state
+        client->state = STATE_END;
         return false;
     }
 
@@ -179,8 +202,7 @@ void handle_response_state(Conn *client) {
     while (try_flush_buffer(client)) {}
 }
 
-void perform_action_on_client(int client_fd, std::vector<Conn *> &fd2conn) {
-    Conn* client = fd2conn[client_fd];
+void perform_action_on_client(Conn *client) {
     if (client->state == STATE_REQ) {
         handle_request_state(client);
     } else if (client->state == STATE_RES) {
@@ -202,6 +224,7 @@ void run_event_loop(int server_fd) {
         // for convenience, the listening fd is put in the first position
         // For this fd, only wait for a POLLIN (flag if there is data to read). Set revents to 0 as default.
         struct pollfd pfd = {server_fd, POLLIN, 0};
+        std::cout << "server " << server_fd << std::endl;
         poll_args.push_back(pfd);
 
         // add all connections from fd2conn to the poll set
@@ -211,15 +234,7 @@ void run_event_loop(int server_fd) {
                     std::cout << "File descriptor is -1" << std::endl;
                     continue;
                 }
-
-                if (conn->state == STATE_END) {
-                    // end connection
-                    // free resources
-                    // update fd2conn
-
-                    // continue in loop
-                }
-
+                
                 struct pollfd client_poll_arg = {
                     conn->fd,
                     conn->state == STATE_REQ ? POLLIN : POLLOUT,
@@ -228,6 +243,8 @@ void run_event_loop(int server_fd) {
                 poll_args.push_back(client_poll_arg);
             }
         }
+
+        std::cout << poll_args.size() << std::endl;
 
         int rv = poll(poll_args.data(), (nfds_t) poll_args.size(), 1000);
 
@@ -242,19 +259,26 @@ void run_event_loop(int server_fd) {
         // for all active sockets that are ready to be operated on, do the operation specified by conn->state
 
         for (int i{1}; i < poll_args.size(); i++) {
-            struct pollfd connection = poll_args.at(i);
-            if (connection.revents) {
-                perform_action_on_client(connection.fd, fd2conn);
+            if (poll_args[i].revents) {
+                Conn *conn = fd2conn[poll_args[i].fd];
+                perform_action_on_client(conn);
+                if (conn->state == STATE_END) {
+                    // client closed normally, or something bad happened.
+                    // destroy this connection
+                    fd2conn[conn->fd] = NULL;
+                    (void)close(conn->fd);
+                    free(conn);
+                }
             }
-            std::cout << connection.fd << ' ' << connection.events << ' ' << connection.revents << std::endl;
-            std::cout << std::endl;
+            // std::cout << connection.fd << ' ' << connection.events << ' ' << connection.revents << std::endl;
+            // std::cout << std::endl;
         }
 
         if (poll_args[0].revents) {
             int client_fd = accept_new_connection(server_fd, fd2conn);
             resize_connections(client_fd, fd2conn);
             map_new_connection(client_fd, fd2conn);
-
+            std:: cout << "client" << client_fd << std::endl;
             // debugging fd2conn
             // for (Conn* conn: fd2conn) {
             //     if (conn) {

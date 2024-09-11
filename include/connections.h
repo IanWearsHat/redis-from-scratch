@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <vector>
+#include <fcntl.h>
 
 enum {
     STATE_REQ = 0,
@@ -38,6 +39,8 @@ static int32_t write_all(int fd, const uint8_t *buf, size_t n);
 
 void die(const char* msg);
 
+void set_fd_to_nonblocking(int fd);
+
 bool try_process_one_request(Conn *client);
 
 bool fill_read_buffer(Conn *client);
@@ -48,7 +51,7 @@ bool try_flush_buffer(Conn *client);
 
 void handle_response_state(Conn *client);
 
-void perform_action_on_client(int client_fd, std::vector<Conn *> &fd2conn);
+void perform_action_on_client(Conn *client);
 
 void map_new_connection(int client_fd, std::vector<Conn *> &fd2conn);
 

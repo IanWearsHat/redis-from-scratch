@@ -105,8 +105,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    
-    
+
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
     addr.sin_port = ntohs(6379);
@@ -118,16 +117,24 @@ int main(int argc, char **argv) {
     // }
 
     // char msg[] = "*1\r\n$4\r\nPING\r\n";
+
+    int fd2 = socket(AF_INET, SOCK_STREAM, 0);
+    int rv2 = connect(fd2, (const struct sockaddr *)&addr, sizeof(addr));
+
     int32_t err;
     err = make_request(fd, "tory lanez");
     err = make_request(fd, "canada");
+    err = make_request(fd2, "tight lipped fathers");
     err = make_request(fd, "just joshin");
+    
 
     read_response(fd);
     read_response(fd);
     read_response(fd);
+    read_response(fd2);
 
     close(fd);
+    close(fd2);
 
     return 0;
 }

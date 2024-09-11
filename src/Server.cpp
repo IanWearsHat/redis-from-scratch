@@ -86,23 +86,6 @@ int32_t process_client(int connfd) {
     return 0;
 }
 
-static void set_fd_to_nonblocking(int fd) {
-    errno = 0;
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (errno) {
-        die("fcntl error");
-        return;
-    }
-
-    flags |= O_NONBLOCK;
-
-    errno = 0;
-    (void) fcntl(fd, F_SETFL, flags);
-    if (errno) {
-        die("fcntl error");
-    }
-}
-
 int main(int argc, char **argv) {
     // Flush after every std::cout / std::cerr
     std::cout << std::unitbuf;
