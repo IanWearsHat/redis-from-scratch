@@ -20,7 +20,7 @@ const size_t k_max_msg = 4096;
 
 struct Conn {
     int fd = -1;
-    uint32_t state = STATE_REQ;     // either STATE_REQ or STATE_RES
+    short int state = STATE_REQ;     // either STATE_REQ or STATE_RES
 
     // buffer for reading
     size_t rbuf_size = 0;
@@ -32,10 +32,6 @@ struct Conn {
     size_t wbuf_sent = 0;
     uint8_t wbuf[4 + k_max_msg];
 };
-
-static int32_t read_full(int fd, uint8_t *buf, size_t n);
-
-static int32_t write_all(int fd, const uint8_t *buf, size_t n);
 
 void die(const char* msg);
 

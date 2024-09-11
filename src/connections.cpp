@@ -14,34 +14,6 @@
 
 #include "connections.h"
 
-// Repeatedly reads from fd into buf until n bytes are reached
-static int32_t read_full(int fd, uint8_t *buf, size_t n) {
-    while (n > 0) {
-        ssize_t rv = read(fd, buf, n);
-        if (rv <= 0) {
-            return -1;  // error, or unexpected EOF
-        }
-        assert((size_t) rv <= n);
-        n -= (size_t)rv;
-        buf += rv;
-    }
-    return 0;
-}
-
-// Repeatedly writes from buf into fd until n bytes are written
-static int32_t write_all(int fd, const uint8_t *buf, size_t n) {
-    while (n > 0) {
-        ssize_t rv = write(fd, buf, n);
-        if (rv <= 0) {
-            return -1;  // error
-        }
-        assert((size_t) rv <= n);
-        n -= (size_t)rv;
-        buf += rv;
-    }
-    return 0;
-}
-
 void die(const char* msg) {
     std::cerr << msg << std::endl;
     exit(1);
@@ -213,6 +185,8 @@ void perform_action_on_client(Conn *client) {
 }
 
 void run_event_loop(int server_fd) {
+    std::cout << "Running event loop" << std::endl;
+
     std::vector<Conn *> fd2conn;
 
     // the event loop
@@ -224,7 +198,6 @@ void run_event_loop(int server_fd) {
         // for convenience, the listening fd is put in the first position
         // For this fd, only wait for a POLLIN (flag if there is data to read). Set revents to 0 as default.
         struct pollfd pfd = {server_fd, POLLIN, 0};
-        std::cout << "server " << server_fd << std::endl;
         poll_args.push_back(pfd);
 
         // add all connections from fd2conn to the poll set
@@ -237,14 +210,12 @@ void run_event_loop(int server_fd) {
                 
                 struct pollfd client_poll_arg = {
                     conn->fd,
-                    conn->state == STATE_REQ ? POLLIN : POLLOUT,
+                    (short int) (conn->state == STATE_REQ ? POLLIN : POLLOUT),
                     0
                 };
                 poll_args.push_back(client_poll_arg);
             }
         }
-
-        std::cout << poll_args.size() << std::endl;
 
         int rv = poll(poll_args.data(), (nfds_t) poll_args.size(), 1000);
 
@@ -257,7 +228,6 @@ void run_event_loop(int server_fd) {
 
 
         // for all active sockets that are ready to be operated on, do the operation specified by conn->state
-
         for (int i{1}; i < poll_args.size(); i++) {
             if (poll_args[i].revents) {
                 Conn *conn = fd2conn[poll_args[i].fd];
@@ -278,7 +248,9 @@ void run_event_loop(int server_fd) {
             int client_fd = accept_new_connection(server_fd, fd2conn);
             resize_connections(client_fd, fd2conn);
             map_new_connection(client_fd, fd2conn);
-            std:: cout << "client" << client_fd << std::endl;
+
+            // std:: cout << "client" << client_fd << std::endl;
+
             // debugging fd2conn
             // for (Conn* conn: fd2conn) {
             //     if (conn) {

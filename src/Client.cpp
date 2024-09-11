@@ -126,12 +126,11 @@ int main(int argc, char **argv) {
     err = make_request(fd, "canada");
     err = make_request(fd2, "tight lipped fathers");
     err = make_request(fd, "just joshin");
-    
 
-    read_response(fd);
-    read_response(fd);
-    read_response(fd);
     read_response(fd2);
+    read_response(fd);
+    read_response(fd);
+    read_response(fd);
 
     close(fd);
     close(fd2);
