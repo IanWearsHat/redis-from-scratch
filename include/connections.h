@@ -31,7 +31,17 @@ struct Conn {
     uint8_t wbuf[4 + k_max_msg];
 };
 
+static int32_t read_full(int fd, uint8_t *buf, size_t n);
+
+static int32_t write_all(int fd, const uint8_t *buf, size_t n);
+
 void die(const char* msg);
+
+void handle_request_state(Conn *client);
+
+void handle_response_state(Conn *client);
+
+void perform_action_on_client(int client_fd, std::vector<Conn *> &fd2conn);
 
 void map_new_connection(int client_fd, std::vector<Conn *> &fd2conn);
 
@@ -40,6 +50,7 @@ void resize_connections(int client_fd, std::vector<Conn *> &fd2conn);
 int accept_new_connection(int server_fd, std::vector<Conn *> &fd2conn);
 
 void run_event_loop(int fd);
+
 /**
  * all_fds = [...]
     while True:

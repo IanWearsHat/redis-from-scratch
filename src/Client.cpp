@@ -54,10 +54,13 @@ int32_t make_request(int fd, const char *text) {
         return err;
     }
 
+}
+
+int32_t read_response(int fd) {
     // read response
     char rbuf[4 + k_max_msg + 1];
     errno = 0;
-    err = read_full(fd, rbuf, 4);
+    int32_t err = read_full(fd, rbuf, 4);
     if (err) {
         if (errno == 0) {
             std::cout << "EOF" << std::endl;
@@ -68,6 +71,7 @@ int32_t make_request(int fd, const char *text) {
     }
 
     // Get length of message from header
+    uint32_t len;
     memcpy(&len, rbuf, 4);  // assume little endian
     if (len > k_max_msg) {
         std::cout << "too long" << std::endl;
@@ -116,21 +120,13 @@ int main(int argc, char **argv) {
     // char msg[] = "*1\r\n$4\r\nPING\r\n";
     int32_t err;
     err = make_request(fd, "tory lanez");
-    if (err) {
-        close(fd);
-        return -1;
-    }
     err = make_request(fd, "canada");
-    if (err) {
-        close(fd);
-        return -1;
-    }
     err = make_request(fd, "just joshin");
-    if (err) {
-        close(fd);
-        return -1;
-    }
-    
+
+    read_response(fd);
+    read_response(fd);
+    read_response(fd);
+
     close(fd);
 
     return 0;
