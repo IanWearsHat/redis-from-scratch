@@ -38,9 +38,9 @@ static int32_t write_all(int fd, const uint8_t *buf, size_t n);
 
 void die(const char* msg);
 
-void try_process_one_request(Conn *client);
+bool try_process_one_request(Conn *client);
 
-void fill_read_buffer(Conn *client);
+bool fill_read_buffer(Conn *client);
 
 void handle_request_state(Conn *client);
 

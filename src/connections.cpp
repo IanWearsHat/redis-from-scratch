@@ -69,20 +69,20 @@ void map_new_connection(int client_fd, std::vector<Conn *> &fd2conn) {
     fd2conn[client_fd] = new_connection;
 }
 
-void try_process_one_request(Conn *client) {
+bool try_process_one_request(Conn *client) {
     // Get length of message from header
     uint32_t len;
     memcpy(&len, client->last_request_end_pointer, 4);  // assume little endian
     if (len > k_max_msg) {
         std::cout << "too long" << std::endl;
-        exit(1);
+        return false;
     }
 
     // either the entire message hasn't been read into the buffer or we have nothing to read
     // either way, we exit this loop
     if (4 + len > client->rbuf_size) {
         std::cout << "end maybe probably" << std::endl;
-        exit(1);
+        return false;
     }
 
     // Read the number of bytes equal to length of message taken from header
@@ -106,9 +106,11 @@ void try_process_one_request(Conn *client) {
     // move pointer to end of request
     client->last_request_end_pointer = &client->last_request_end_pointer[4 + len];
     client->rbuf_size -= 4 + len;
+
+    return true;
 }
 
-void fill_read_buffer(Conn *client) {
+bool fill_read_buffer(Conn *client) {
     assert(client->rbuf_size < sizeof(client->rbuf));
     ssize_t rv = 0;
 
@@ -123,23 +125,25 @@ void fill_read_buffer(Conn *client) {
     if (rv < 0 && errno == EAGAIN) {
         // mark connection for end
         // break out of while loop in handle_request_state
+        return false;
     }
 
     if (rv == 0) {
         // reached EOF
         // mark connection for end
         // break out of while loop in handle_request_state
+        return false;
     }
 
     client->rbuf_size += (size_t) rv;
     assert(client->rbuf_size <= sizeof(client->rbuf));
+
+    return true;
 }
 
 void handle_request_state(Conn *client) {
-    fill_read_buffer(client);
-    // try_process_one_request(client);
-    while (true) {
-        try_process_one_request(client);
+    while(fill_read_buffer(client)) {
+        while (try_process_one_request(client)) {}
     }
 }
 
@@ -172,9 +176,7 @@ bool try_flush_buffer(Conn *client) {
 }
 
 void handle_response_state(Conn *client) {
-    while (true) {
-        try_flush_buffer(client);
-    }
+    while (try_flush_buffer(client)) {}
 }
 
 void perform_action_on_client(int client_fd, std::vector<Conn *> &fd2conn) {
