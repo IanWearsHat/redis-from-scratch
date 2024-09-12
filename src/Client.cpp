@@ -54,6 +54,7 @@ int32_t make_request(int fd, const char *text) {
         return err;
     }
 
+    return 0;
 }
 
 int32_t read_response(int fd) {

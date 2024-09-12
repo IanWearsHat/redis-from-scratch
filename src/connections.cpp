@@ -185,7 +185,7 @@ void perform_action_on_client(Conn *client) {
 }
 
 void run_event_loop(int server_fd) {
-    std::cout << "Running event loop" << std::endl;
+    std::cout << "Running event loop..." << std::endl;
 
     std::vector<Conn *> fd2conn;
 
