@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <assert.h>
+#include <vector>
 
 // Repeatedly reads from fd into buf until n bytes are reached
 static int32_t read_full(int fd, char *buf, size_t n) {
@@ -37,14 +38,67 @@ static int32_t write_all(int fd, const char *buf, size_t n) {
     return 0;
 }
 
-const size_t k_max_msg = 4096;
-int32_t make_request(int fd, const char *text) {
-    uint32_t len = (uint32_t) strlen(text);
+void write_text_to_buffer(char *buf, const std::vector<std::string> &args) {
+    int pos{0};
+    for (const std::string str: args) {
+        int len = str.size();
+        memcpy(&buf[pos], &len, 4);
+        strcpy(&buf[pos + 4], str.c_str());
 
-    char wbuf[4 + len];
-    memcpy(wbuf, &len, 4);
-    memcpy(&wbuf[4], text, len);
-    int32_t err = write_all(fd, wbuf, 4 + len);
+        printf("bruh %s\n", &buf[pos + 4]);
+
+        pos += 4 + len;
+    }
+}
+
+int get_request_length(const std::vector<std::string> &args) {
+    int total{8};
+    for (const std::string str: args) {
+        total += 4 + str.size();
+    }
+    return total;
+}
+
+const size_t k_max_msg = 4096;
+int32_t make_request(int fd, const std::vector<std::string> &args) {
+    int num_args = args.size();
+    int request_byte_length = get_request_length(args);
+
+    char wbuf[8 + request_byte_length];
+    memcpy(wbuf, &request_byte_length, 4);
+    memcpy(&wbuf[4], &num_args, 4);
+
+    write_text_to_buffer(&wbuf[8], args);
+
+    int test1;
+    memcpy(&test1, wbuf, 4);
+
+    int test2;
+    memcpy(&test2, &wbuf[4], 4);
+
+    int test3;
+    memcpy(&test3, &wbuf[8], 4);
+
+    char test4[test3 + 1];
+    memcpy(&test4, &wbuf[8 + 4], test3);
+    test4[test3] = '\0';
+
+    int test5;
+    memcpy(&test5, &wbuf[8 + 4 + test3], 4);
+
+    char test6[test5 + 1];
+    memcpy(&test6, &wbuf[8 + 4 + 4 + test3], test5);
+    test6[test5] = '\0';
+
+    std::cout << "Request Length: " << test1 << std::endl;
+    std::cout << "Word count: " << test2 << std::endl;
+    std::cout << "First word length: " << test3 << std::endl;
+    std::cout << "Second word length: " << test5 << std::endl;
+
+    printf("First word: %s\n", test4);
+    printf("Second word: %s\n", test6);
+
+    int32_t err = write_all(fd, wbuf, 4 + request_byte_length);
     if (err) {
         if (errno == 0) {
             std::cout << "EOF" << std::endl;
@@ -122,15 +176,17 @@ int main(int argc, char **argv) {
     int fd2 = socket(AF_INET, SOCK_STREAM, 0);
     int rv2 = connect(fd2, (const struct sockaddr *)&addr, sizeof(addr));
 
-    int32_t err;
-    err = make_request(fd, "tory lanez");
-    err = make_request(fd, "canada");
-    err = make_request(fd2, "tight lipped fathers");
-    err = make_request(fd, "just joshin");
+    std::vector<std::string> request = {"tory", "lanez", "canada"};
 
-    read_response(fd2);
-    read_response(fd);
-    read_response(fd);
+    int32_t err;
+    err = make_request(fd, request);
+    // err = make_request(fd, "canada");
+    // err = make_request(fd2, "tight lipped fathers");
+    // err = make_request(fd, "just joshin");
+
+    // read_response(fd2);
+    // read_response(fd);
+    // read_response(fd);
     read_response(fd);
 
     close(fd);

@@ -37,6 +37,12 @@ void die(const char* msg);
 
 void set_fd_to_nonblocking(int fd);
 
+int32_t parse_command(const uint8_t *req, uint32_t reqlen, uint32_t word_count, std::vector<std::string> &cmd_tokens);
+
+int32_t do_request(
+    const uint8_t *req, uint32_t reqlen,
+    uint32_t *rescode, uint8_t *res, uint32_t *reslen);
+
 bool try_process_one_request(Conn *client);
 
 bool fill_read_buffer(Conn *client);

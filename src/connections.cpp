@@ -61,6 +61,47 @@ void map_new_connection(int client_fd, std::vector<Conn *> &fd2conn) {
     fd2conn[client_fd] = new_connection;
 }
 
+int32_t parse_command(const uint8_t *req, uint32_t reqlen, uint32_t word_count, std::vector<std::string> &cmd_tokens) {
+    std::cout << reqlen << std::endl;
+    std::cout << word_count << std::endl;
+
+    uint8_t pos = 8;
+    for (int i{0}; i < word_count; i++) {
+        // Get length of string to read
+        uint32_t len;
+        memcpy(&len, &req[pos], 4);  // assume little endian
+
+        std::cout << pos + 4 + len << std::endl;
+        if (pos + 4 + len > reqlen) {
+            return -1;
+        }
+
+        cmd_tokens.push_back(std::string((char *)&req[pos + 4], len));
+        pos += 4 + len;
+    }
+
+    if (pos != reqlen) {
+        return -1;  // trailing garbage
+    }
+    return 0;
+}
+
+int32_t do_request(
+    const uint8_t *req, uint32_t reqlen,
+    uint32_t *rescode, uint8_t *res, uint32_t *reslen) {
+
+    // Get length of string to read
+    uint32_t word_count;
+    memcpy(&word_count, &req[4], 4);  // assume little endian
+
+    std::vector<std::string> cmd_tokens;
+    int32_t err = parse_command(req, reqlen, word_count, cmd_tokens);
+
+    for (std::string str: cmd_tokens) {
+        std::cout << str << std::endl;
+    }
+}
+
 bool try_process_one_request(Conn *client) {
     // Get length of message from header
     uint32_t len;
@@ -74,6 +115,17 @@ bool try_process_one_request(Conn *client) {
     // either way, we exit this loop
     if (4 + len > client->rbuf_size) {
         std::cout << "end maybe probably" << std::endl;
+        return false;
+    }
+
+    uint32_t rescode = 0;
+    uint32_t wlen = 0;
+    int32_t err = do_request(
+        client->rbuf, len,
+        &rescode, &client->wbuf[4 + 4], &wlen
+    );
+    if (err) {
+        client->state = STATE_END;
         return false;
     }
 
